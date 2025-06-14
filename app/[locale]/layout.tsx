@@ -1,76 +1,70 @@
 import type React from "react"
-import type { Metadata } from "next"
 import { NextIntlClientProvider } from "next-intl"
 import { getMessages } from "next-intl/server"
-import { notFound } from "next/navigation"
-import { routing } from "@/i18n/routing"
-import AuthProvider from "@/components/auth-provider"
-import "../globals.css"
+import { ThemeProvider } from "@/components/theme-provider"
+import { AuthProvider } from "@/components/auth-provider"
+import { Toaster } from "@/components/ui/sonner"
+import Link from "next/link"
+import { Button } from "@/components/ui/button"
+import { FileText, MessageSquare, Settings } from "lucide-react"
+import "./globals.css"
 
-type Props = {
-  children: React.ReactNode
-  params: Promise<{ locale: string }>
-}
-
-export function generateStaticParams() {
-  return routing.locales.map((locale) => ({ locale }))
-}
-
-export async function generateMetadata({
-  params,
+export default async function LocaleLayout({
+  children,
+  params: { locale },
 }: {
-  params: Promise<{ locale: string }>
-}): Promise<Metadata> {
-  const { locale } = await params
-
-  const titles = {
-    zh: "多平台 AI - 智能助手",
-    en: "Multi-Platform AI - AI Assistant",
-    ja: "マルチプラットフォーム AI - AIアシスタント",
-  }
-
-  const descriptions = {
-    zh: "一次提问，多个AI平台同时回答",
-    en: "Ask once, get answers from multiple AI platforms",
-    ja: "一度の質問で複数のAIプラットフォームから同時に回答を取得",
-  }
-
-  return {
-    title: titles[locale as keyof typeof titles] || titles.zh,
-    description: descriptions[locale as keyof typeof descriptions] || descriptions.zh,
-    keywords: ["AI", "ChatGPT", "DeepSeek", "GitHub Copilot", "Microsoft Copilot", "多平台AI"],
-    authors: [{ name: "Multi-Platform AI" }],
-    openGraph: {
-      title: titles[locale as keyof typeof titles] || titles.zh,
-      description: descriptions[locale as keyof typeof descriptions] || descriptions.zh,
-      type: "website",
-    },
-    twitter: {
-      card: "summary_large_image",
-      title: titles[locale as keyof typeof titles] || titles.zh,
-      description: descriptions[locale as keyof typeof descriptions] || descriptions.zh,
-    },
-  }
-}
-
-export default async function RootLayout({ children, params }: Props) {
-  const { locale } = await params
-
-  // Ensure that the incoming `locale` is valid
-  if (!routing.locales.includes(locale as any)) {
-    notFound()
-  }
-
-  // Providing all messages to the client
-  // side is the easiest way to get started
+  children: React.ReactNode
+  params: { locale: string }
+}) {
   const messages = await getMessages()
 
   return (
-    <html lang={locale}>
-      <body className="font-chinese antialiased">
-        <AuthProvider>
-          <NextIntlClientProvider messages={messages}>{children}</NextIntlClientProvider>
-        </AuthProvider>
+    <html lang={locale} suppressHydrationWarning>
+      <body>
+        <NextIntlClientProvider messages={messages}>
+          <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+            <AuthProvider>
+              <div className="min-h-screen bg-background">
+                {/* Navigation */}
+                <nav className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+                  <div className="container mx-auto px-4 py-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-4">
+                        <Link href={`/${locale}`} className="text-xl font-bold">
+                          Multi-Platform AI
+                        </Link>
+                        <div className="hidden md:flex items-center space-x-2">
+                          <Button variant="ghost" size="sm" asChild>
+                            <Link href={`/${locale}`} className="flex items-center gap-2">
+                              <MessageSquare className="w-4 h-4" />
+                              Chat
+                            </Link>
+                          </Button>
+                          <Button variant="ghost" size="sm" asChild>
+                            <Link href={`/${locale}/ocr`} className="flex items-center gap-2">
+                              <FileText className="w-4 h-4" />
+                              OCR
+                            </Link>
+                          </Button>
+                          <Button variant="ghost" size="sm" asChild>
+                            <Link href={`/${locale}/setup`} className="flex items-center gap-2">
+                              <Settings className="w-4 h-4" />
+                              Setup
+                            </Link>
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </nav>
+
+                {/* Main Content */}
+                <main>{children}</main>
+              </div>
+              <Toaster />
+            </AuthProvider>
+          </ThemeProvider>
+        </NextIntlClientProvider>
       </body>
     </html>
   )
