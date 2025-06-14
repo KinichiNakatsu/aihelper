@@ -318,7 +318,8 @@ export default function OCRPage() {
                           <img
                             src={
                               images.find((img) => img.id === result.imageId)?.preview ||
-                              "/placeholder.svg?height=64&width=64"
+                              "/placeholder.svg?height=64&width=64" ||
+                              "/placeholder.svg"
                             }
                             alt={result.imageName}
                             className="w-full h-full object-cover"
