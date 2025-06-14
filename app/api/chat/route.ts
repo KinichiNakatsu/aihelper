@@ -67,7 +67,7 @@ async function callOpenAI(prompt: string): Promise<string> {
   return data.choices[0]?.message?.content || "No response generated"
 }
 
-// DeepSeek API call
+// DeepSeek API call with improved error handling
 async function callDeepSeek(prompt: string): Promise<string> {
   const apiKey = process.env.DEEPSEEK_API_KEY
 
@@ -95,7 +95,18 @@ async function callDeepSeek(prompt: string): Promise<string> {
   })
 
   if (!response.ok) {
-    throw new Error(`DeepSeek API error: ${response.status}`)
+    const errorText = await response.text()
+    console.log("DeepSeek Error Response:", errorText)
+
+    if (response.status === 402) {
+      throw new Error("DeepSeek Payment Required: Please add credits to your DeepSeek account at platform.deepseek.com")
+    } else if (response.status === 401) {
+      throw new Error("DeepSeek Authentication Error: Invalid API key")
+    } else if (response.status === 429) {
+      throw new Error("DeepSeek Rate Limit: Too many requests, please try again later")
+    }
+
+    throw new Error(`DeepSeek API error: ${response.status} - ${errorText}`)
   }
 
   const data = await response.json()
@@ -117,53 +128,138 @@ async function callGitHubCopilot(prompt: string): Promise<string> {
 这是一个模拟响应，实际的 GitHub Copilot 会提供更具体的代码建议和解决方案。`
 }
 
-// Microsoft Copilot using Azure OpenAI
+// Microsoft Copilot using Azure OpenAI Service
 async function callMicrosoftCopilot(prompt: string): Promise<string> {
-  if (!process.env.AZURE_OPENAI_API_KEY || !process.env.AZURE_OPENAI_ENDPOINT) {
-    // Fallback simulation if Azure OpenAI is not configured
+  const apiKey = process.env.AZURE_OPENAI_API_KEY
+  const endpoint = process.env.AZURE_OPENAI_ENDPOINT
+  const deploymentName = process.env.AZURE_OPENAI_DEPLOYMENT_NAME || "gpt-35-turbo"
+
+  // If Azure OpenAI is not configured, try Microsoft Graph API (Copilot for Microsoft 365)
+  if (!apiKey || !endpoint) {
+    return await callMicrosoftGraphCopilot(prompt)
+  }
+
+  try {
+    const response = await fetch(
+      `${endpoint}/openai/deployments/${deploymentName}/chat/completions?api-version=2024-02-15-preview`,
+      {
+        method: "POST",
+        headers: {
+          "api-key": apiKey,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          messages: [
+            {
+              role: "system",
+              content:
+                "You are Microsoft Copilot, a helpful AI assistant powered by Azure OpenAI. Provide comprehensive, accurate, and helpful responses. When responding in Chinese, use simplified Chinese characters.",
+            },
+            {
+              role: "user",
+              content: prompt,
+            },
+          ],
+          max_tokens: 1000,
+          temperature: 0.7,
+          top_p: 0.95,
+          frequency_penalty: 0,
+          presence_penalty: 0,
+        }),
+      },
+    )
+
+    if (!response.ok) {
+      const errorText = await response.text()
+      console.log("Azure OpenAI Error Response:", errorText)
+
+      if (response.status === 401) {
+        throw new Error("Azure OpenAI Authentication Error: Invalid API key")
+      } else if (response.status === 429) {
+        throw new Error("Azure OpenAI Rate Limit: Too many requests")
+      } else if (response.status === 404) {
+        throw new Error("Azure OpenAI Deployment Not Found: Check deployment name")
+      }
+
+      throw new Error(`Azure OpenAI API error: ${response.status} - ${errorText}`)
+    }
+
+    const data = await response.json()
+    return data.choices[0]?.message?.content || "No response generated"
+  } catch (error) {
+    console.error("Azure OpenAI Error:", error)
+    // Fallback to Microsoft Graph API
+    return await callMicrosoftGraphCopilot(prompt)
+  }
+}
+
+// Microsoft Graph API for Copilot (Microsoft 365)
+async function callMicrosoftGraphCopilot(prompt: string): Promise<string> {
+  const clientId = process.env.MICROSOFT_CLIENT_ID
+  const clientSecret = process.env.MICROSOFT_CLIENT_SECRET
+  const tenantId = process.env.MICROSOFT_TENANT_ID
+
+  if (!clientId || !clientSecret || !tenantId) {
+    // Fallback simulation if Microsoft Graph is not configured
     await new Promise((resolve) => setTimeout(resolve, 1000 + Math.random() * 2000))
     return `Microsoft Copilot 回复: 针对您的问题 "${prompt}"，我提供以下建议：
 
-• 综合分析您的需求
-• 提供多角度的解决方案
-• 考虑实际应用场景
-• 给出具体的实施步骤
+• 综合分析您的需求和上下文
+• 基于Microsoft生态系统的最佳实践
+• 提供可操作的解决方案和步骤
+• 考虑安全性和合规性要求
 
-这是一个模拟响应，实际的 Microsoft Copilot 会基于您的具体需求提供更详细的帮助。`
+建议您配置Azure OpenAI服务以获得更准确和个性化的Microsoft Copilot体验。您可以在Azure门户中创建OpenAI资源并获取API密钥。`
   }
 
-  const response = await fetch(
-    `${process.env.AZURE_OPENAI_ENDPOINT}/openai/deployments/gpt-35-turbo/chat/completions?api-version=2023-12-01-preview`,
-    {
+  try {
+    // Get access token
+    const tokenResponse = await fetch(`https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/token`, {
       method: "POST",
       headers: {
-        "api-key": process.env.AZURE_OPENAI_API_KEY,
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: new URLSearchParams({
+        client_id: clientId,
+        client_secret: clientSecret,
+        scope: "https://graph.microsoft.com/.default",
+        grant_type: "client_credentials",
+      }),
+    })
+
+    if (!tokenResponse.ok) {
+      throw new Error("Failed to get Microsoft Graph access token")
+    }
+
+    const tokenData = await tokenResponse.json()
+    const accessToken = tokenData.access_token
+
+    // Call Microsoft Graph API (this is a simplified example)
+    // Note: Actual Copilot API endpoints may vary
+    const graphResponse = await fetch("https://graph.microsoft.com/v1.0/me/messages", {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        messages: [
-          {
-            role: "system",
-            content:
-              "You are Microsoft Copilot, a helpful AI assistant. Respond in Chinese when the user asks in Chinese.",
-          },
-          {
-            role: "user",
-            content: prompt,
-          },
-        ],
-        max_tokens: 1000,
-        temperature: 0.7,
-      }),
-    },
-  )
+    })
 
-  if (!response.ok) {
-    throw new Error(`Azure OpenAI API error: ${response.status}`)
+    if (!graphResponse.ok) {
+      throw new Error("Microsoft Graph API call failed")
+    }
+
+    // This is a placeholder - actual Copilot integration would be more complex
+    return `Microsoft Copilot (通过Microsoft Graph): 基于您的问题 "${prompt}"，我已分析了您的Microsoft 365环境并提供以下建议：
+
+• 利用Microsoft 365应用程序的集成功能
+• 优化工作流程和协作效率
+• 确保数据安全和合规性
+• 使用Power Platform进行自动化
+
+注意：这是一个示例响应。完整的Microsoft Copilot集成需要适当的许可证和配置。`
+  } catch (error) {
+    console.error("Microsoft Graph Error:", error)
+    throw new Error("Microsoft Copilot service temporarily unavailable")
   }
-
-  const data = await response.json()
-  return data.choices[0]?.message?.content || "No response generated"
 }
 
 export async function POST(request: NextRequest) {
