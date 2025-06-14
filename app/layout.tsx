@@ -3,8 +3,8 @@ import type { Metadata } from "next"
 import "./globals.css"
 
 export const metadata: Metadata = {
-  title: "AI OCR - Text Extraction",
-  description: "Upload images and extract text using AI",
+  title: "AI文章修改 - OCR文本提取",
+  description: "支持多图片上传，OpenAI自动识别文字并返回结果",
     generator: 'v0.dev'
 }
 
@@ -15,7 +15,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="zh">
-      <body className="antialiased">{children}</body>
+      <body className="font-chinese antialiased">{children}</body>
     </html>
   )
 }
