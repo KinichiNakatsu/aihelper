@@ -113,19 +113,147 @@ async function callDeepSeek(prompt: string): Promise<string> {
   return data.choices[0]?.message?.content || "No response generated"
 }
 
-// GitHub Copilot simulation (as it doesn't have a public API)
+// GitHub API integration (using GitHub's REST API for code analysis)
 async function callGitHubCopilot(prompt: string): Promise<string> {
-  // Simulate GitHub Copilot response
+  const githubToken = process.env.GITHUB_TOKEN
+  const githubApiUrl = process.env.GITHUB_API_URL || "https://api.github.com"
+
+  // If no GitHub token, return simulation
+  if (!githubToken) {
+    return await simulateGitHubCopilot(prompt)
+  }
+
+  try {
+    // Use GitHub's search API to find relevant code examples
+    const searchResponse = await fetch(
+      `${githubApiUrl}/search/code?q=${encodeURIComponent(prompt)}&sort=indexed&order=desc&per_page=5`,
+      {
+        headers: {
+          Authorization: `Bearer ${githubToken}`,
+          Accept: "application/vnd.github.v3+json",
+          "User-Agent": "Multi-Platform-AI-App",
+        },
+      },
+    )
+
+    if (!searchResponse.ok) {
+      if (searchResponse.status === 401) {
+        throw new Error("GitHub Authentication Error: Invalid token")
+      } else if (searchResponse.status === 403) {
+        throw new Error("GitHub Rate Limit: API rate limit exceeded")
+      } else if (searchResponse.status === 422) {
+        throw new Error("GitHub Search Error: Invalid search query")
+      }
+      throw new Error(`GitHub API error: ${searchResponse.status}`)
+    }
+
+    const searchData = await searchResponse.json()
+
+    // Analyze the search results and provide suggestions
+    let response = `GitHub Copilot 代码分析: 基于您的查询 "${prompt}"，我找到了以下相关信息：\n\n`
+
+    if (searchData.items && searchData.items.length > 0) {
+      response += "📋 相关代码示例:\n"
+
+      for (let i = 0; i < Math.min(3, searchData.items.length); i++) {
+        const item = searchData.items[i]
+        response += `${i + 1}. ${item.name} (${item.repository.full_name})\n`
+        response += `   语言: ${item.repository.language || "Unknown"}\n`
+        response += `   路径: ${item.path}\n\n`
+      }
+
+      response += "💡 建议:\n"
+      response += "• 查看上述代码示例以获取实现思路\n"
+      response += "• 考虑代码的可读性和维护性\n"
+      response += "• 遵循所选编程语言的最佳实践\n"
+      response += "• 添加适当的错误处理和测试\n\n"
+    } else {
+      response += "未找到直接相关的代码示例，但我建议:\n\n"
+      response += "💡 通用编程建议:\n"
+      response += "• 使用清晰的变量和函数命名\n"
+      response += "• 编写模块化和可重用的代码\n"
+      response += "• 添加注释说明复杂逻辑\n"
+      response += "• 考虑性能和安全性\n"
+      response += "• 编写单元测试确保代码质量\n\n"
+    }
+
+    response += "🔗 GitHub 资源:\n"
+    response += `• 搜索更多示例: https://github.com/search?q=${encodeURIComponent(prompt)}&type=code\n`
+    response += "• GitHub Docs: https://docs.github.com\n"
+    response += "• GitHub Community: https://github.community\n"
+
+    return response
+  } catch (error) {
+    console.error("GitHub API Error:", error)
+
+    // Fallback to simulation if API fails
+    return await simulateGitHubCopilot(prompt)
+  }
+}
+
+// Simulation function for when GitHub API is not available
+async function simulateGitHubCopilot(prompt: string): Promise<string> {
   await new Promise((resolve) => setTimeout(resolve, 1000 + Math.random() * 2000))
 
-  return `GitHub Copilot 分析: 基于您的问题 "${prompt}"，我建议您考虑以下几个方面：
+  // Analyze the prompt to provide more relevant suggestions
+  const isCodeRelated = /code|function|class|method|algorithm|programming|debug|error|syntax/.test(prompt.toLowerCase())
+  const isWebDev = /html|css|javascript|react|vue|angular|web|frontend|backend/.test(prompt.toLowerCase())
+  const isPython = /python|django|flask|pandas|numpy/.test(prompt.toLowerCase())
+  const isJava = /java|spring|maven|gradle/.test(prompt.toLowerCase())
 
-1. 代码实现的最佳实践
-2. 性能优化建议
-3. 安全性考虑
-4. 可维护性改进
+  let response = `GitHub Copilot 智能分析: 针对您的问题 "${prompt}"，我提供以下建议：\n\n`
 
-这是一个模拟响应，实际的 GitHub Copilot 会提供更具体的代码建议和解决方案。`
+  if (isCodeRelated) {
+    response += "🔧 代码实现建议:\n"
+
+    if (isWebDev) {
+      response += "• 使用现代Web开发框架 (React, Vue, Angular)\n"
+      response += "• 遵循响应式设计原则\n"
+      response += "• 优化性能和用户体验\n"
+      response += "• 确保跨浏览器兼容性\n"
+    } else if (isPython) {
+      response += "• 遵循PEP 8编码规范\n"
+      response += "• 使用虚拟环境管理依赖\n"
+      response += "• 利用Python丰富的第三方库\n"
+      response += "• 编写Pythonic代码\n"
+    } else if (isJava) {
+      response += "• 遵循Java编码约定\n"
+      response += "• 使用Maven或Gradle管理项目\n"
+      response += "• 利用Spring框架的强大功能\n"
+      response += "• 实现适当的设计模式\n"
+    } else {
+      response += "• 选择合适的编程语言和框架\n"
+      response += "• 设计清晰的代码架构\n"
+      response += "• 实现错误处理机制\n"
+      response += "• 编写可维护的代码\n"
+    }
+  } else {
+    response += "💡 通用建议:\n"
+    response += "• 明确问题的具体需求\n"
+    response += "• 研究现有的解决方案\n"
+    response += "• 考虑可扩展性和维护性\n"
+    response += "• 寻求社区支持和反馈\n"
+  }
+
+  response += "\n🛠 开发最佳实践:\n"
+  response += "• 版本控制: 使用Git进行代码管理\n"
+  response += "• 代码审查: 通过Pull Request进行协作\n"
+  response += "• 测试驱动: 编写单元测试和集成测试\n"
+  response += "• 文档编写: 维护清晰的项目文档\n"
+  response += "• 持续集成: 设置CI/CD流水线\n\n"
+
+  response += "📚 学习资源:\n"
+  response += "• GitHub: 探索开源项目和代码示例\n"
+  response += "• Stack Overflow: 寻找技术问题解答\n"
+  response += "• 官方文档: 查阅相关技术的官方指南\n"
+  response += "• 在线教程: 通过实践项目提升技能\n\n"
+
+  response += "⚠️ 注意: 这是GitHub Copilot的模拟响应。要获得真实的GitHub Copilot体验，请:\n"
+  response += "• 在VS Code中安装GitHub Copilot扩展\n"
+  response += "• 订阅GitHub Copilot服务\n"
+  response += "• 配置GitHub Personal Access Token以使用GitHub API\n"
+
+  return response
 }
 
 // Microsoft Copilot using Azure OpenAI Service

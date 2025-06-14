@@ -72,6 +72,15 @@ DEEPSEEK_API_KEY=your_deepseek_api_key
 AZURE_OPENAI_API_KEY=your_azure_openai_api_key
 AZURE_OPENAI_ENDPOINT=your_azure_openai_endpoint
 
+# GitHub Integration
+GITHUB_TOKEN=your_github_personal_access_token
+GITHUB_API_URL=https://api.github.com
+
+# Microsoft Azure AD Configuration
+MICROSOFT_CLIENT_ID=your_application_client_id_here
+MICROSOFT_CLIENT_SECRET=your_client_secret_value_here
+MICROSOFT_TENANT_ID=your_directory_tenant_id_here
+
 # NextAuth
 NEXTAUTH_URL=http://localhost:3000
 NEXTAUTH_SECRET=your_nextauth_secret
@@ -146,6 +155,52 @@ stripe trigger customer.subscription.created
 5. Add authorized redirect URIs:
    - `http://localhost:3000/api/auth/callback/google`
    - `https://your-domain.com/api/auth/callback/google`
+
+## 🔧 GitHub Integration Setup
+
+### 1. Create GitHub Personal Access Token
+
+1. **Go to GitHub Settings:**
+   - Visit [GitHub Settings > Developer settings > Personal access tokens](https://github.com/settings/tokens)
+   - Click "Generate new token (classic)"
+
+2. **Configure Token:**
+   \`\`\`
+   Note: Multi-Platform AI Integration
+   Expiration: 90 days (or as needed)
+   Scopes:
+   ✅ repo (for private repositories)
+   ✅ public_repo (for public repositories) 
+   ✅ read:user (for user information)
+   ✅ user:email (for user email)
+   \`\`\`
+
+3. **Copy Token:**
+   - Click "Generate token"
+   - Copy the token immediately (you won't see it again)
+   - Add it to your `.env.local` as `GITHUB_TOKEN`
+
+### 2. GitHub API Features
+
+With GitHub integration, the app can:
+- 🔍 Search relevant code examples from GitHub repositories
+- 📊 Analyze code patterns and best practices
+- 💡 Provide programming suggestions based on real code
+- 🔗 Link to relevant GitHub resources and documentation
+
+### 3. Rate Limits
+
+GitHub API has rate limits:
+- **Authenticated requests:** 5,000 per hour
+- **Search API:** 30 requests per minute
+- **Unauthenticated:** 60 requests per hour
+
+### 4. Alternative: GitHub Apps
+
+For production use, consider creating a GitHub App instead of using personal access tokens:
+- Better security and permissions management
+- Higher rate limits
+- Organization-level installation
 
 ## 📊 API Endpoints
 
@@ -239,74 +294,3 @@ This project is licensed under the MIT License.
 ---
 
 **Ready for production with Stripe subscriptions! 🚀💳**
-\`\`\`
-
-I've successfully integrated Stripe for streaming feature subscriptions! Here's what I've implemented:
-
-## 🚀 **Complete Stripe Integration:**
-
-### **1. Subscription Management**
-- **Stripe Checkout** for secure payment processing
-- **Billing Portal** for subscription management
-- **Webhook handling** for real-time subscription updates
-- **Subscription status checking** to gate premium features
-
-### **2. Authentication System**
-- **NextAuth.js** with Google OAuth
-- **User session management**
-- **Automatic Stripe customer creation**
-
-### **3. Premium Feature Gating**
-- **Streaming toggle** requires authentication and subscription
-- **Visual indicators** for premium features
-- **Subscription dialog** for easy upgrades
-- **Graceful degradation** for free users
-
-### **4. User Experience**
-- **Professional subscription dialog** with feature comparison
-- **Success/cancel pages** for payment flow
-- **Subscription status dashboard**
-- **Seamless upgrade process**
-
-## 💰 **Monetization Features:**
-
-### **Pricing Structure**
-- **Free Tier**: Standard responses, basic features
-- **Pro Tier**: ¥29/month for streaming responses + premium features
-
-### **Payment Flow**
-1. User clicks streaming toggle without subscription
-2. Shows subscription dialog with feature comparison
-3. Redirects to Stripe Checkout
-4. Webhook updates subscription status
-5. User gains immediate access to streaming
-
-### **Subscription Management**
-- **Billing portal** for plan changes
-- **Automatic renewal** handling
-- **Cancellation support**
-- **Grace period** management
-
-## 🔧 **Technical Implementation:**
-
-### **API Routes**
-- `/api/subscription/create-checkout` - Start subscription
-- `/api/subscription/portal` - Manage billing
-- `/api/subscription/status` - Check subscription
-- `/api/webhooks/stripe` - Handle Stripe events
-
-### **Security Features**
-- **Webhook signature verification**
-- **Server-side subscription validation**
-- **Secure API key management**
-- **Authentication-gated endpoints**
-
-## 🎯 **Ready for Production:**
-- **Complete Stripe integration**
-- **Secure payment processing**
-- **Real-time subscription updates**
-- **Professional UI/UX**
-- **Multilingual support**
-- **Mobile responsive**
-
-The application is now ready to generate revenue with a professional subscription system! 💳✨
