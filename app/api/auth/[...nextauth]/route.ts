@@ -9,6 +9,7 @@ const handler = NextAuth({
     }),
   ],
   secret: process.env.NEXTAUTH_SECRET,
+  debug: process.env.NODE_ENV === "development",
   callbacks: {
     async session({ session, token }) {
       return {
@@ -19,6 +20,13 @@ const handler = NextAuth({
         },
       }
     },
+    async signIn({ user, account, profile, email, credentials }) {
+      console.log("Sign in attempt:", { user: user?.email, account: account?.provider })
+      return true
+    },
+  },
+  pages: {
+    error: "/auth/error",
   },
 })
 
