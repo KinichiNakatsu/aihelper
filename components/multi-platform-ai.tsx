@@ -58,8 +58,8 @@ export default function MultiPlatformAI() {
   const [selectedServices, setSelectedServices] = useState<SelectedServices>({
     chatgpt: true,
     deepseek: true,
-    github: true,
-    microsoft: true,
+    github: false,
+    microsoft: false,
   })
   const [isLoading, setIsLoading] = useState(false)
   const [responses, setResponses] = useState<AIResponse[]>([])
