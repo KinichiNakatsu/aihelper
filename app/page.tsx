@@ -7,15 +7,13 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Upload, X, GripVertical, FileText, Languages, CheckCircle, AlertCircle } from "lucide-react"
-import Image from "next/image"
+import { Upload, X, FileText, Languages, CheckCircle, AlertCircle } from "lucide-react"
 
 interface UploadedImage {
   id: string
-  file: File
-  preview: string
   name: string
   size: number
+  preview: string
 }
 
 interface OCRResult {
@@ -26,7 +24,6 @@ interface OCRResult {
   correctedText: string
   suggestions: string
   status: "success" | "error"
-  error?: string
 }
 
 export default function OCRPage() {
@@ -65,38 +62,44 @@ export default function OCRPage() {
   }
 
   const addImages = (files: File[]) => {
-    const newImages = files.map((file) => ({
-      id: Math.random().toString(36).substr(2, 9),
-      file,
-      preview: URL.createObjectURL(file),
-      name: file.name,
-      size: file.size,
-    }))
-    setImages((prev) => [...prev, ...newImages])
-  }
-
-  const removeImage = (id: string) => {
-    setImages((prev) => {
-      const updated = prev.filter((img) => img.id !== id)
-      const imageToRemove = prev.find((img) => img.id === id)
-      if (imageToRemove) {
-        URL.revokeObjectURL(imageToRemove.preview)
+    files.forEach((file) => {
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        const newImage: UploadedImage = {
+          id: Math.random().toString(36).substr(2, 9),
+          name: file.name,
+          size: file.size,
+          preview: e.target?.result as string,
+        }
+        setImages((prev) => [...prev, newImage])
       }
-      return updated
+      reader.readAsDataURL(file)
     })
   }
 
+  const removeImage = (id: string) => {
+    setImages((prev) => prev.filter((img) => img.id !== id))
+  }
+
   const clearAllImages = () => {
-    images.forEach((img) => URL.revokeObjectURL(img.preview))
     setImages([])
     setResults([])
   }
 
-  const moveImage = (fromIndex: number, toIndex: number) => {
-    const newImages = [...images]
-    const [movedImage] = newImages.splice(fromIndex, 1)
-    newImages.splice(toIndex, 0, movedImage)
-    setImages(newImages)
+  const moveImageUp = (index: number) => {
+    if (index > 0) {
+      const newImages = [...images]
+      ;[newImages[index - 1], newImages[index]] = [newImages[index], newImages[index - 1]]
+      setImages(newImages)
+    }
+  }
+
+  const moveImageDown = (index: number) => {
+    if (index < images.length - 1) {
+      const newImages = [...images]
+      ;[newImages[index], newImages[index + 1]] = [newImages[index + 1], newImages[index]]
+      setImages(newImages)
+    }
   }
 
   const processWithOpenAI = async () => {
@@ -105,26 +108,34 @@ export default function OCRPage() {
     setIsProcessing(true)
     setActiveTab("results")
 
-    try {
-      // Simulate API processing
-      const mockResults: OCRResult[] = images.map((image, index) => ({
-        imageId: image.id,
-        imageName: image.name,
-        language: index === 0 ? "日文" : ["中文", "英文", "韩文"][Math.floor(Math.random() * 3)],
-        originalText: `这是从图片 ${image.name} 中提取的原始文本。包含了各种文字内容，可能存在一些识别错误或格式问题。文本内容较长，包含多个段落和句子。例如，作所のアドレスを性所を日本語に覚語したら助けありますか、地の中に頭い込められて、の場所が分からずで、助け災害が「地震」などの地震にを覚えてなくていいです。被災して困った時にたまります。助けくれますか、道意車が呼ばれたとき警察守消防車が呼ばれたら、１１０番に連すたりします。１１９番に連絡しスタクにも救備を求められます。困ったときに、の声に避難所の結論まとめ地震は予測できないから、日ごろの備えが大切です。`,
-        correctedText: `这是经过AI修正后的文本内容。语法更加准确，格式更加规范，错别字已经修正。文本结构更加清晰，便于阅读和理解。例如：作业所的地址要改成日语来记住吗，如果有帮助的话，地点被埋在其中，不知道场所在哪里，发生了"地震"等灾害时，如果没有记住是没关系的。遇到灾难困难的时候会有帮助。能帮助我吗，当救急车被叫来的时候，警察和消防车也会被叫来，拨打110或119进行联络。向工作人员求助。遇到困难的时候，避难所的结论：地震是无法预测的，平时的准备很重要。`,
-        suggestions: `建议优化文本结构，注意标点符号的使用，保持语言的一致性和流畅性。对于混合语言文本，建议分别处理不同语言部分。`,
-        status: "success",
-      }))
+    // Simulate API processing
+    const mockResults: OCRResult[] = images.map((image, index) => ({
+      imageId: image.id,
+      imageName: image.name,
+      language: index === 0 ? "日文" : ["中文", "英文", "韩文"][Math.floor(Math.random() * 3)],
+      originalText: `这是从图片 ${image.name} 中提取的原始文本。包含了各种文字内容，可能存在一些识别错误或格式问题。
 
-      // Simulate processing delay
-      await new Promise((resolve) => setTimeout(resolve, 2000))
+例如：作所のアドレスを性所を日本語に覚語したら助けありますか、地の中に頭い込められて、の場所が分からずで、助け災害が「地震」などの地震にを覚えてなくていいです。
+
+被災して困った時にたまります。助けくれますか、道意車が呼ばれたとき警察守消防車が呼ばれたら、１１０番に連すたりします。１１９番に連絡しスタクにも救備を求められます。
+
+困ったときに、の声に避難所の結論まとめ地震は予測できないから、日ごろの備えが大切です。`,
+      correctedText: `这是经过AI修正后的文本内容。语法更加准确，格式更加规范，错别字已经修正。
+
+例如：作业所的地址要改成日语来记住吗，如果有帮助的话，地点被埋在其中，不知道场所在哪里，发生了"地震"等灾害时，如果没有记住是没关系的。
+
+遇到灾难困难的时候会有帮助。能帮助我吗，当救急车被叫来的时候，警察和消防车也会被叫来，拨打110或119进行联络。向工作人员求助。
+
+遇到困难的时候，避难所的结论：地震是无法预测的，平时的准备很重要。`,
+      suggestions: `建议优化文本结构，注意标点符号的使用，保持语言的一致性和流畅性。对于混合语言文本，建议分别处理不同语言部分。`,
+      status: "success",
+    }))
+
+    // Simulate processing delay
+    setTimeout(() => {
       setResults(mockResults)
-    } catch (error) {
-      console.error("OCR processing failed:", error)
-    } finally {
       setIsProcessing(false)
-    }
+    }, 2000)
   }
 
   const formatFileSize = (bytes: number) => {
@@ -202,7 +213,7 @@ export default function OCRPage() {
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between">
                   <CardTitle className="flex items-center gap-2">
-                    已上传图片 ({images.length})<Badge variant="secondary">拖拽图片可调整顺序</Badge>
+                    已上传图片 ({images.length})<Badge variant="secondary">使用按钮调整顺序</Badge>
                   </CardTitle>
                   <Button variant="outline" size="sm" onClick={clearAllImages}>
                     <X className="w-4 h-4 mr-2" />
@@ -210,49 +221,50 @@ export default function OCRPage() {
                   </Button>
                 </CardHeader>
                 <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div className="space-y-4">
                     {images.map((image, index) => (
-                      <div
-                        key={image.id}
-                        className="relative group border rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow"
-                        draggable
-                        onDragStart={(e) => {
-                          e.dataTransfer.setData("text/plain", index.toString())
-                        }}
-                        onDragOver={(e) => e.preventDefault()}
-                        onDrop={(e) => {
-                          e.preventDefault()
-                          const fromIndex = Number.parseInt(e.dataTransfer.getData("text/plain"))
-                          if (fromIndex !== index) {
-                            moveImage(fromIndex, index)
-                          }
-                        }}
-                      >
-                        <div className="relative aspect-video">
-                          <Image
+                      <div key={image.id} className="flex items-center gap-4 p-4 border rounded-lg bg-white shadow-sm">
+                        <div className="flex-shrink-0">
+                          <Badge variant="outline" className="w-8 h-8 rounded-full flex items-center justify-center">
+                            {index + 1}
+                          </Badge>
+                        </div>
+
+                        <div className="w-16 h-16 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
+                          <img
                             src={image.preview || "/placeholder.svg"}
                             alt={image.name}
-                            fill
-                            className="object-cover"
+                            className="w-full h-full object-cover"
                           />
-                          <div className="absolute top-2 left-2 bg-blue-500 text-white px-2 py-1 rounded text-sm font-medium">
-                            {index + 1}
-                          </div>
-                          <div className="absolute top-2 right-8 bg-gray-800 bg-opacity-50 text-white p-1 rounded cursor-move opacity-0 group-hover:opacity-100 transition-opacity">
-                            <GripVertical className="w-4 h-4" />
-                          </div>
-                          <button
-                            onClick={() => removeImage(image.id)}
-                            className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
-                          >
-                            <X className="w-4 h-4" />
-                          </button>
                         </div>
-                        <div className="p-3 bg-white">
+
+                        <div className="flex-1 min-w-0">
                           <p className="font-medium text-sm truncate" title={image.name}>
                             {image.name}
                           </p>
                           <p className="text-xs text-gray-500">{formatFileSize(image.size)}</p>
+                        </div>
+
+                        <div className="flex gap-2">
+                          <Button variant="outline" size="sm" onClick={() => moveImageUp(index)} disabled={index === 0}>
+                            ↑
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => moveImageDown(index)}
+                            disabled={index === images.length - 1}
+                          >
+                            ↓
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => removeImage(image.id)}
+                            className="text-red-600 hover:text-red-700"
+                          >
+                            <X className="w-4 h-4" />
+                          </Button>
                         </div>
                       </div>
                     ))}
@@ -302,15 +314,14 @@ export default function OCRPage() {
                   {results.map((result, index) => (
                     <div key={result.imageId} className="border rounded-lg p-6">
                       <div className="flex items-center gap-4 mb-4">
-                        <div className="relative w-16 h-16 rounded-lg overflow-hidden">
-                          <Image
+                        <div className="w-16 h-16 rounded-lg overflow-hidden bg-gray-100">
+                          <img
                             src={
                               images.find((img) => img.id === result.imageId)?.preview ||
                               "/placeholder.svg?height=64&width=64"
                             }
                             alt={result.imageName}
-                            fill
-                            className="object-cover"
+                            className="w-full h-full object-cover"
                           />
                         </div>
                         <div className="flex-1">
@@ -332,14 +343,12 @@ export default function OCRPage() {
                         </Badge>
                       </div>
 
-                      {result.status === "success" ? (
+                      {result.status === "success" && (
                         <>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                            <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-2">语言:</label>
-                              <div className="p-3 bg-gray-50 rounded-lg">
-                                <Badge variant="outline">{result.language}</Badge>
-                              </div>
+                          <div className="mb-4">
+                            <label className="block text-sm font-medium text-gray-700 mb-2">语言:</label>
+                            <div className="p-3 bg-gray-50 rounded-lg">
+                              <Badge variant="outline">{result.language}</Badge>
                             </div>
                           </div>
 
@@ -365,10 +374,6 @@ export default function OCRPage() {
                             </div>
                           </div>
                         </>
-                      ) : (
-                        <div className="p-4 bg-red-50 rounded-lg">
-                          <p className="text-red-600 text-sm">{result.error}</p>
-                        </div>
                       )}
                     </div>
                   ))}
