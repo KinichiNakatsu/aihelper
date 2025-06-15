@@ -10,7 +10,6 @@
   },
   "dependencies": {
     "@auth/core": "latest",
-    "@hello-pangea/dnd": "latest",
     "@radix-ui/react-accordion": "latest",
     "@radix-ui/react-alert-dialog": "latest",
     "@radix-ui/react-aspect-ratio": "latest",
@@ -54,7 +53,7 @@
     "react": "^18",
     "react-day-picker": "latest",
     "react-dom": "^18",
-    "react-dropzone": "latest",
+    "react-dropzone": "^14.2.3",
     "react-hook-form": "latest",
     "react-resizable-panels": "latest",
     "recharts": "latest",
