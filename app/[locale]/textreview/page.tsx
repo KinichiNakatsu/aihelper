@@ -1,18 +1,18 @@
 "use client"
 
 import type React from "react"
-
-import { useState } from "react"
+import { useState, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Upload, X, Languages, CheckCircle, AlertCircle } from "lucide-react"
+import { Upload, X, Languages, CheckCircle, AlertCircle, ChevronUp, ChevronDown } from "lucide-react"
 
 interface UploadedImage {
   id: string
   name: string
   size: number
   preview: string
+  file: File
 }
 
 interface OCRResult {
@@ -30,6 +30,7 @@ export default function TextReviewPage() {
   const [results, setResults] = useState<OCRResult[]>([])
   const [isProcessing, setIsProcessing] = useState(false)
   const [dragOver, setDragOver] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault()
@@ -56,7 +57,17 @@ export default function TextReviewPage() {
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || [])
-    addImages(files)
+    if (files.length > 0) {
+      addImages(files)
+    }
+    // Reset the input value so the same file can be selected again
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ""
+    }
+  }
+
+  const handleButtonClick = () => {
+    fileInputRef.current?.click()
   }
 
   const addImages = (files: File[]) => {
@@ -68,6 +79,7 @@ export default function TextReviewPage() {
           name: file.name,
           size: file.size,
           preview: e.target?.result as string,
+          file: file,
         }
         setImages((prev) => [...prev, newImage])
       }
@@ -77,6 +89,7 @@ export default function TextReviewPage() {
 
   const removeImage = (id: string) => {
     setImages((prev) => prev.filter((img) => img.id !== id))
+    setResults((prev) => prev.filter((result) => result.imageId !== id))
   }
 
   const clearAllImages = () => {
@@ -165,29 +178,39 @@ export default function TextReviewPage() {
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
                 onDrop={handleDrop}
-                className={`border-2 border-dashed rounded-lg p-12 text-center cursor-pointer transition-colors ${
+                onClick={handleButtonClick}
+                className={`border-2 border-dashed rounded-lg p-12 text-center cursor-pointer transition-all duration-200 ${
                   dragOver
-                    ? "border-purple-500 bg-purple-50"
-                    : "border-gray-300 hover:border-purple-400 hover:bg-gray-50"
+                    ? "border-purple-500 bg-purple-50 scale-105"
+                    : "border-gray-300 hover:border-purple-400 hover:bg-gray-50 hover:scale-102"
                 }`}
               >
                 <input
+                  ref={fileInputRef}
                   type="file"
                   multiple
                   accept="image/*"
                   onChange={handleFileSelect}
                   className="hidden"
-                  id="file-upload"
                 />
-                <Upload className="w-16 h-16 text-purple-500 mx-auto mb-4" />
+                <Upload
+                  className={`w-16 h-16 mx-auto mb-4 transition-colors ${
+                    dragOver ? "text-purple-600" : "text-purple-500"
+                  }`}
+                />
                 <p className="text-lg font-medium text-gray-700 mb-2">
                   {dragOver ? "松开鼠标上传文件" : "拖放图片到此处或"}
                 </p>
-                <label htmlFor="file-upload">
-                  <Button variant="outline" className="mb-4 cursor-pointer">
-                    选择图片
-                  </Button>
-                </label>
+                <Button
+                  variant="outline"
+                  className="mb-4 bg-purple-600 text-white hover:bg-purple-700 border-purple-600"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    handleButtonClick()
+                  }}
+                >
+                  选择图片
+                </Button>
                 <p className="text-sm text-gray-500">支持格式：JPG, PNG (最大10MB)</p>
               </div>
             </CardContent>
@@ -198,7 +221,7 @@ export default function TextReviewPage() {
             <Card>
               <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle className="flex items-center gap-2">
-                  已上传图片 ({images.length})<Badge variant="secondary">使用按钮调整顺序</Badge>
+                  已上传图片 ({images.length})<Badge variant="secondary">拖拽图片可调整顺序</Badge>
                 </CardTitle>
                 <Button variant="outline" size="sm" onClick={clearAllImages}>
                   <X className="w-4 h-4 mr-2" />
@@ -208,14 +231,20 @@ export default function TextReviewPage() {
               <CardContent>
                 <div className="space-y-4">
                   {images.map((image, index) => (
-                    <div key={image.id} className="flex items-center gap-4 p-4 border rounded-lg bg-white shadow-sm">
+                    <div
+                      key={image.id}
+                      className="flex items-center gap-4 p-4 border rounded-lg bg-white shadow-sm hover:shadow-md transition-shadow"
+                    >
                       <div className="flex-shrink-0">
-                        <Badge variant="outline" className="w-8 h-8 rounded-full flex items-center justify-center">
+                        <Badge
+                          variant="outline"
+                          className="w-8 h-8 rounded-full flex items-center justify-center font-bold"
+                        >
                           {index + 1}
                         </Badge>
                       </div>
 
-                      <div className="w-16 h-16 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
+                      <div className="w-16 h-16 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0 border">
                         <img
                           src={image.preview || "/placeholder.svg"}
                           alt={image.name}
@@ -231,22 +260,29 @@ export default function TextReviewPage() {
                       </div>
 
                       <div className="flex gap-2">
-                        <Button variant="outline" size="sm" onClick={() => moveImageUp(index)} disabled={index === 0}>
-                          ↑
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => moveImageUp(index)}
+                          disabled={index === 0}
+                          className="hover:bg-blue-50"
+                        >
+                          <ChevronUp className="w-4 h-4" />
                         </Button>
                         <Button
                           variant="outline"
                           size="sm"
                           onClick={() => moveImageDown(index)}
                           disabled={index === images.length - 1}
+                          className="hover:bg-blue-50"
                         >
-                          ↓
+                          <ChevronDown className="w-4 h-4" />
                         </Button>
                         <Button
                           variant="outline"
                           size="sm"
                           onClick={() => removeImage(image.id)}
-                          className="text-red-600 hover:text-red-700"
+                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
                         >
                           <X className="w-4 h-4" />
                         </Button>
@@ -260,11 +296,11 @@ export default function TextReviewPage() {
                     onClick={processWithOpenAI}
                     disabled={isProcessing}
                     size="lg"
-                    className="bg-purple-600 hover:bg-purple-700"
+                    className="bg-purple-600 hover:bg-purple-700 px-8 py-3 text-lg"
                   >
                     {isProcessing ? (
                       <>
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2" />
                         处理中...
                       </>
                     ) : (
@@ -277,7 +313,7 @@ export default function TextReviewPage() {
           )}
         </div>
 
-        {/* Results Section - Always visible below upload section */}
+        {/* Results Section */}
         {(results.length > 0 || isProcessing) && (
           <Card>
             <CardHeader>
@@ -290,29 +326,24 @@ export default function TextReviewPage() {
               {isProcessing ? (
                 <div className="text-center py-12">
                   <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4" />
-                  <p className="text-gray-600">正在处理图片，请稍候...</p>
+                  <p className="text-gray-600 text-lg">正在处理图片，请稍候...</p>
                 </div>
               ) : (
                 results.map((result, index) => (
-                  <div key={result.imageId} className="border rounded-lg p-6">
+                  <div key={result.imageId} className="border rounded-lg p-6 bg-white shadow-sm">
                     <div className="flex items-center gap-4 mb-4">
-                      <div className="w-16 h-16 rounded-lg overflow-hidden bg-gray-100">
+                      <div className="w-16 h-16 rounded-lg overflow-hidden bg-gray-100 border">
                         <img
-                          src={
-                            images.find((img) => img.id === result.imageId)?.preview ||
-                            "/placeholder.svg?height=64&width=64" ||
-                            "/placeholder.svg" ||
-                            "/placeholder.svg"
-                          }
+                          src={images.find((img) => img.id === result.imageId)?.preview || "/placeholder.svg"}
                           alt={result.imageName}
                           className="w-full h-full object-cover"
                         />
                       </div>
                       <div className="flex-1">
-                        <h3 className="font-medium">图片 {index + 1}</h3>
+                        <h3 className="font-medium text-lg">图片 {index + 1}</h3>
                         <p className="text-sm text-gray-500">{result.imageName}</p>
                       </div>
-                      <Badge variant={result.status === "success" ? "default" : "destructive"}>
+                      <Badge variant={result.status === "success" ? "default" : "destructive"} className="px-3 py-1">
                         {result.status === "success" ? (
                           <>
                             <CheckCircle className="w-3 h-3 mr-1" />
@@ -332,20 +363,22 @@ export default function TextReviewPage() {
                         <div className="mb-4">
                           <label className="block text-sm font-medium text-gray-700 mb-2">语言:</label>
                           <div className="p-3 bg-gray-50 rounded-lg">
-                            <Badge variant="outline">{result.language}</Badge>
+                            <Badge variant="outline" className="text-sm px-3 py-1">
+                              {result.language}
+                            </Badge>
                           </div>
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                           <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2">文本:</label>
-                            <div className="p-4 bg-gray-50 rounded-lg h-64 overflow-y-auto">
+                            <div className="p-4 bg-gray-50 rounded-lg h-64 overflow-y-auto border">
                               <p className="text-sm leading-relaxed whitespace-pre-wrap">{result.originalText}</p>
                             </div>
                           </div>
                           <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2">修正后:</label>
-                            <div className="p-4 bg-blue-50 rounded-lg h-64 overflow-y-auto">
+                            <div className="p-4 bg-blue-50 rounded-lg h-64 overflow-y-auto border border-blue-200">
                               <p className="text-sm leading-relaxed whitespace-pre-wrap">{result.correctedText}</p>
                             </div>
                           </div>
@@ -353,8 +386,8 @@ export default function TextReviewPage() {
 
                         <div className="mt-4">
                           <label className="block text-sm font-medium text-gray-700 mb-2">修正意见:</label>
-                          <div className="p-4 bg-yellow-50 rounded-lg">
-                            <p className="text-sm">{result.suggestions}</p>
+                          <div className="p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+                            <p className="text-sm leading-relaxed">{result.suggestions}</p>
                           </div>
                         </div>
                       </>
