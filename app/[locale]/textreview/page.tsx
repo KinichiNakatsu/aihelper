@@ -17,22 +17,32 @@ interface UploadedImage {
 }
 
 interface OCRResult {
-  imageId: string
+  imageIndex: number
   imageName: string
-  language: string
-  originalText: string
-  correctedText: string
-  suggestions: string
-  status: "success" | "error"
+  success: boolean
+  result?: {
+    lang: string
+    text: string
+    advice: string[]
+    text_refined: string
+    return: string
+    end: string
+  }
+  error?: string
 }
 
 interface MergedOCRResult {
-  language: string
-  originalText: string
-  correctedText: string
-  suggestions: string
-  status: "success" | "error"
-  imageCount: number
+  success: boolean
+  result?: {
+    lang: string
+    text: string
+    advice: string[]
+    text_refined: string
+    return: string
+    end: string
+    image_count: number
+  }
+  error?: string
 }
 
 export default function TextReviewPage() {
@@ -42,6 +52,7 @@ export default function TextReviewPage() {
   const [isProcessing, setIsProcessing] = useState(false)
   const [dragOver, setDragOver] = useState(false)
   const [mergeImages, setMergeImages] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -101,13 +112,15 @@ export default function TextReviewPage() {
 
   const removeImage = (id: string) => {
     setImages((prev) => prev.filter((img) => img.id !== id))
-    setResults((prev) => prev.filter((result) => result.imageId !== id))
+    setResults([])
+    setMergedResult(null)
   }
 
   const clearAllImages = () => {
     setImages([])
     setResults([])
     setMergedResult(null)
+    setError(null)
   }
 
   const moveImageUp = (index: number) => {
@@ -132,78 +145,42 @@ export default function TextReviewPage() {
     setIsProcessing(true)
     setResults([])
     setMergedResult(null)
+    setError(null)
 
-    if (mergeImages) {
-      // Process as merged result
-      const mockMergedResult: MergedOCRResult = {
-        language: "混合语言",
-        originalText: `这是从 ${images.length} 张图片中提取并合并的文本内容。按照上传顺序进行了整理和合并。
+    try {
+      // Prepare FormData
+      const formData = new FormData()
+      formData.append("mergeImages", mergeImages.toString())
 
-=== 图片 1: ${images[0]?.name} ===
-作所のアドレスを性所を日本語に覚語したら助けありますか、地の中に頭い込められて、の場所が分からずで、助け災害が「地震」などの地震にを覚えてなくていいです。
+      // Add images to FormData
+      images.forEach((image, index) => {
+        formData.append(`image_${index}`, image.file)
+      })
 
-=== 图片 2: ${images[1]?.name || "示例图片"} ===
-被災して困った時にたまります。助けくれますか、道意車が呼ばれたとき警察守消防車が呼ばれたら、１１０番に連すたりします。１１９番に連絡しスタクにも救備を求められます。
+      // Call the API
+      const response = await fetch("/api/ocr", {
+        method: "POST",
+        body: formData,
+      })
 
-=== 图片 3: ${images[2]?.name || "示例图片"} ===
-困ったときに、の声に避難所の結論まとめ地震は予測できないから、日ごろの備えが大切です。
+      const data = await response.json()
 
-${images.length > 3 ? `\n=== 其他 ${images.length - 3} 张图片 ===\n更多文本内容...` : ""}`,
-        correctedText: `这是经过AI修正后的合并文本内容。已经统一了语言风格，修正了错误，并优化了整体结构。
-
-=== 第一部分：地址和位置信息 ===
-工作场所的地址要用日语记住吗？如果有帮助的话，当地点被埋在废墟中，不知道具体位置时，对于"地震"等灾害，即使没有记住也没关系。
-
-=== 第二部分：紧急救援 ===
-遇到灾难困难的时候会有帮助。能帮助我吗？当救护车被叫来时，警察和消防车也会被叫来，拨打110或119进行联络。也可以向工作人员求助。
-
-=== 第三部分：防灾准备 ===
-遇到困难时，关于避难所的结论：地震是无法预测的，平时的准备很重要。
-
-=== 总结 ===
-所有图片的文本内容已经整合完毕，语言统一，逻辑清晰。`,
-        suggestions: `合并处理建议：
-1. 统一了混合语言文本，主要转换为中文表达
-2. 按照逻辑顺序重新组织了内容结构
-3. 修正了OCR识别错误和语法问题
-4. 建议在实际应用中根据图片内容的相关性来决定是否合并处理
-5. 对于不同主题的图片，建议分别处理以保持内容的独立性`,
-        status: "success",
-        imageCount: images.length,
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to process images")
       }
 
-      setTimeout(() => {
-        setMergedResult(mockMergedResult)
-        setIsProcessing(false)
-      }, 2500)
-    } else {
-      // Process individually
-      const mockResults: OCRResult[] = images.map((image, index) => ({
-        imageId: image.id,
-        imageName: image.name,
-        language: index === 0 ? "日文" : ["中文", "英文", "韩文"][Math.floor(Math.random() * 3)],
-        originalText: `这是从图片 ${image.name} 中提取的原始文本。包含了各种文字内容，可能存在一些识别错误或格式问题。
-
-例如：作所のアドレスを性所を日本語に覚語したら助けありますか、地の中に頭い込められて、の場所が分からずで、助け災害が「地震」などの地震にを覚えてなくていいです。
-
-被災して困った時にたまります。助けくれますか、道意車が呼ばれたとき警察守消防車が呼ばれたら、１１０番に連すたりします。１１９番に連絡しスタクにも救備を求められます。
-
-困ったときに、の声に避難所の結論まとめ地震は予測できないから、日ごろの備えが大切です。`,
-        correctedText: `这是经过AI修正后的文本内容。语法更加准确，格式更加规范，错别字已经修正。
-
-例如：作业所的地址要改成日语来记住吗，如果有帮助的话，地点被埋在其中，不知道场所在哪里，发生了"地震"等灾害时，如果没有记住是没关系的。
-
-遇到灾难困难的时候会有帮助。能帮助我吗，当救急车被叫来的时候，警察和消防车也会被叫来，拨打110或119进行联络。向工作人员求助。
-
-遇到困难的时候，避难所的结论：地震是无法预测的，平时的准备很重要。`,
-        suggestions: `建议优化文本结构，注意标点符号的使用，保持语言的一致性和流畅性。对于混合语言文本，建议分别处理不同语言部分。`,
-        status: "success",
-      }))
-
-      setTimeout(() => {
-        setResults(mockResults)
-        setIsProcessing(false)
-      }, 2000)
+      if (data.merged) {
+        // Handle merged result
+        setMergedResult(data)
+      } else {
+        // Handle individual results
+        setResults(data.results || [])
+      }
+    } catch (error) {
+      console.error("Error processing images:", error)
+      setError(error instanceof Error ? error.message : "Failed to process images")
+    } finally {
+      setIsProcessing(false)
     }
   }
 
@@ -227,6 +204,19 @@ ${images.length > 3 ? `\n=== 其他 ${images.length - 3} 张图片 ===\n更多�
             上传多张包含文本的图片，调整顺序后提交，OpenAI将自动识别文字并返回结果
           </p>
         </div>
+
+        {/* Error Display */}
+        {error && (
+          <Card className="border-red-200 bg-red-50">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2 text-red-700">
+                <AlertCircle className="w-5 h-5" />
+                <p className="font-medium">处理错误</p>
+              </div>
+              <p className="text-red-600 mt-2">{error}</p>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Upload Section */}
         <div className="space-y-6">
@@ -392,9 +382,9 @@ ${images.length > 3 ? `\n=== 其他 ${images.length - 3} 张图片 ===\n更多�
               <CardTitle className="flex items-center gap-2">
                 <Languages className="w-5 h-5" />
                 AI处理结果
-                {mergedResult && (
+                {mergedResult?.result && (
                   <Badge variant="secondary" className="ml-2">
-                    合并处理 ({mergedResult.imageCount} 张图片)
+                    合并处理 ({mergedResult.result.image_count} 张图片)
                   </Badge>
                 )}
               </CardTitle>
@@ -407,7 +397,7 @@ ${images.length > 3 ? `\n=== 其他 ${images.length - 3} 张图片 ===\n更多�
                     {mergeImages ? "正在合并处理所有图片..." : "正在处理图片，请稍候..."}
                   </p>
                 </div>
-              ) : mergedResult ? (
+              ) : mergedResult?.result ? (
                 // Merged Result Display
                 <div className="border rounded-lg p-6 bg-white shadow-sm">
                   <div className="flex items-center gap-4 mb-4">
@@ -432,82 +422,74 @@ ${images.length > 3 ? `\n=== 其他 ${images.length - 3} 张图片 ===\n更多�
                     </div>
                     <div className="flex-1">
                       <h3 className="font-medium text-lg">合并处理结果</h3>
-                      <p className="text-sm text-gray-500">共处理 {mergedResult.imageCount} 张图片</p>
+                      <p className="text-sm text-gray-500">共处理 {mergedResult.result.image_count} 张图片</p>
                     </div>
-                    <Badge
-                      variant={mergedResult.status === "success" ? "default" : "destructive"}
-                      className="px-3 py-1"
-                    >
-                      {mergedResult.status === "success" ? (
-                        <>
-                          <CheckCircle className="w-3 h-3 mr-1" />
-                          成功
-                        </>
-                      ) : (
-                        <>
-                          <AlertCircle className="w-3 h-3 mr-1" />
-                          失败
-                        </>
-                      )}
+                    <Badge variant="default" className="px-3 py-1">
+                      <CheckCircle className="w-3 h-3 mr-1" />
+                      {mergedResult.result.return}
                     </Badge>
                   </div>
 
-                  {mergedResult.status === "success" && (
-                    <>
-                      <div className="mb-4">
-                        <label className="block text-sm font-medium text-gray-700 mb-2">语言:</label>
-                        <div className="p-3 bg-gray-50 rounded-lg">
-                          <Badge variant="outline" className="text-sm px-3 py-1">
-                            {mergedResult.language}
-                          </Badge>
-                        </div>
-                      </div>
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">检测语言:</label>
+                    <div className="p-3 bg-gray-50 rounded-lg">
+                      <Badge variant="outline" className="text-sm px-3 py-1">
+                        {mergedResult.result.lang}
+                      </Badge>
+                    </div>
+                  </div>
 
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">合并文本:</label>
-                          <div className="p-4 bg-gray-50 rounded-lg h-80 overflow-y-auto border">
-                            <p className="text-sm leading-relaxed whitespace-pre-wrap">{mergedResult.originalText}</p>
-                          </div>
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">修正后:</label>
-                          <div className="p-4 bg-blue-50 rounded-lg h-80 overflow-y-auto border border-blue-200">
-                            <p className="text-sm leading-relaxed whitespace-pre-wrap">{mergedResult.correctedText}</p>
-                          </div>
-                        </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">提取的文本:</label>
+                      <div className="p-4 bg-gray-50 rounded-lg h-80 overflow-y-auto border">
+                        <p className="text-sm leading-relaxed whitespace-pre-wrap">{mergedResult.result.text}</p>
                       </div>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">修正后的文本:</label>
+                      <div className="p-4 bg-blue-50 rounded-lg h-80 overflow-y-auto border border-blue-200">
+                        <p className="text-sm leading-relaxed whitespace-pre-wrap">
+                          {mergedResult.result.text_refined}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
 
-                      <div className="mt-4">
-                        <label className="block text-sm font-medium text-gray-700 mb-2">修正意见:</label>
-                        <div className="p-4 bg-yellow-50 rounded-lg border border-yellow-200">
-                          <p className="text-sm leading-relaxed whitespace-pre-wrap">{mergedResult.suggestions}</p>
-                        </div>
-                      </div>
-                    </>
-                  )}
+                  <div className="mt-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">修改建议:</label>
+                    <div className="p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+                      <ul className="text-sm space-y-1">
+                        {mergedResult.result.advice.map((advice, index) => (
+                          <li key={index} className="leading-relaxed">
+                            {advice}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
                 </div>
               ) : (
                 // Individual Results Display
                 results.map((result, index) => (
-                  <div key={result.imageId} className="border rounded-lg p-6 bg-white shadow-sm">
+                  <div key={`${result.imageIndex}-${index}`} className="border rounded-lg p-6 bg-white shadow-sm">
                     <div className="flex items-center gap-4 mb-4">
                       <div className="w-16 h-16 rounded-lg overflow-hidden bg-gray-100 border">
                         <img
-                          src={images.find((img) => img.id === result.imageId)?.preview || "/placeholder.svg"}
+                          src={images[result.imageIndex]?.preview || "/placeholder.svg"}
                           alt={result.imageName}
                           className="w-full h-full object-cover"
                         />
                       </div>
                       <div className="flex-1">
-                        <h3 className="font-medium text-lg">图片 {index + 1}</h3>
+                        <h3 className="font-medium text-lg">图片 {result.imageIndex + 1}</h3>
                         <p className="text-sm text-gray-500">{result.imageName}</p>
                       </div>
-                      <Badge variant={result.status === "success" ? "default" : "destructive"} className="px-3 py-1">
-                        {result.status === "success" ? (
+                      <Badge variant={result.success ? "default" : "destructive"} className="px-3 py-1">
+                        {result.success ? (
                           <>
                             <CheckCircle className="w-3 h-3 mr-1" />
-                            成功
+                            {result.result?.return || "成功"}
                           </>
                         ) : (
                           <>
@@ -518,39 +500,51 @@ ${images.length > 3 ? `\n=== 其他 ${images.length - 3} 张图片 ===\n更多�
                       </Badge>
                     </div>
 
-                    {result.status === "success" && (
+                    {result.success && result.result ? (
                       <>
                         <div className="mb-4">
-                          <label className="block text-sm font-medium text-gray-700 mb-2">语言:</label>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">检测语言:</label>
                           <div className="p-3 bg-gray-50 rounded-lg">
                             <Badge variant="outline" className="text-sm px-3 py-1">
-                              {result.language}
+                              {result.result.lang}
                             </Badge>
                           </div>
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">文本:</label>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">提取的文本:</label>
                             <div className="p-4 bg-gray-50 rounded-lg h-64 overflow-y-auto border">
-                              <p className="text-sm leading-relaxed whitespace-pre-wrap">{result.originalText}</p>
+                              <p className="text-sm leading-relaxed whitespace-pre-wrap">{result.result.text}</p>
                             </div>
                           </div>
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">修正后:</label>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">修正后的文本:</label>
                             <div className="p-4 bg-blue-50 rounded-lg h-64 overflow-y-auto border border-blue-200">
-                              <p className="text-sm leading-relaxed whitespace-pre-wrap">{result.correctedText}</p>
+                              <p className="text-sm leading-relaxed whitespace-pre-wrap">
+                                {result.result.text_refined}
+                              </p>
                             </div>
                           </div>
                         </div>
 
                         <div className="mt-4">
-                          <label className="block text-sm font-medium text-gray-700 mb-2">修正意见:</label>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">修改建议:</label>
                           <div className="p-4 bg-yellow-50 rounded-lg border border-yellow-200">
-                            <p className="text-sm leading-relaxed whitespace-pre-wrap">{result.suggestions}</p>
+                            <ul className="text-sm space-y-1">
+                              {result.result.advice.map((advice, adviceIndex) => (
+                                <li key={adviceIndex} className="leading-relaxed">
+                                  {advice}
+                                </li>
+                              ))}
+                            </ul>
                           </div>
                         </div>
                       </>
+                    ) : (
+                      <div className="p-4 bg-red-50 rounded-lg border border-red-200">
+                        <p className="text-red-600 text-sm">处理失败: {result.error || "未知错误"}</p>
+                      </div>
                     )}
                   </div>
                 ))
