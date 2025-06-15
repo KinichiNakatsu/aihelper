@@ -6,8 +6,7 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Upload, X, FileText, Languages, CheckCircle, AlertCircle } from "lucide-react"
+import { Upload, X, Languages, CheckCircle, AlertCircle } from "lucide-react"
 
 interface UploadedImage {
   id: string
@@ -30,7 +29,6 @@ export default function OCRPage() {
   const [images, setImages] = useState<UploadedImage[]>([])
   const [results, setResults] = useState<OCRResult[]>([])
   const [isProcessing, setIsProcessing] = useState(false)
-  const [activeTab, setActiveTab] = useState("upload")
   const [dragOver, setDragOver] = useState(false)
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -106,7 +104,6 @@ export default function OCRPage() {
     if (images.length === 0) return
 
     setIsProcessing(true)
-    setActiveTab("results")
 
     // Simulate API processing
     const mockResults: OCRResult[] = images.map((image, index) => ({
@@ -148,9 +145,9 @@ export default function OCRPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 p-4">
-      <div className="max-w-6xl mx-auto">
+      <div className="max-w-6xl mx-auto space-y-8">
         {/* Header */}
-        <div className="text-center mb-8">
+        <div className="text-center">
           <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-4">
             AI文章修改，支持多图片上传，<span className="text-red-500">OCR文本提取</span>
           </h1>
@@ -159,230 +156,215 @@ export default function OCRPage() {
           </p>
         </div>
 
-        {/* Main Content */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-2 mb-6">
-            <TabsTrigger value="upload" className="flex items-center gap-2">
-              <Upload className="w-4 h-4" />
-              图片上传
-            </TabsTrigger>
-            <TabsTrigger value="results" className="flex items-center gap-2">
-              <FileText className="w-4 h-4" />
-              润色结果
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="upload" className="space-y-6">
-            {/* Upload Area */}
-            <Card>
-              <CardContent className="p-8">
-                <div
-                  onDragOver={handleDragOver}
-                  onDragLeave={handleDragLeave}
-                  onDrop={handleDrop}
-                  className={`border-2 border-dashed rounded-lg p-12 text-center cursor-pointer transition-colors ${
-                    dragOver
-                      ? "border-purple-500 bg-purple-50"
-                      : "border-gray-300 hover:border-purple-400 hover:bg-gray-50"
-                  }`}
-                >
-                  <input
-                    type="file"
-                    multiple
-                    accept="image/*"
-                    onChange={handleFileSelect}
-                    className="hidden"
-                    id="file-upload"
-                  />
-                  <Upload className="w-16 h-16 text-purple-500 mx-auto mb-4" />
-                  <p className="text-lg font-medium text-gray-700 mb-2">
-                    {dragOver ? "松开鼠标上传文件" : "拖放图片到此处或"}
-                  </p>
-                  <label htmlFor="file-upload">
-                    <Button variant="outline" className="mb-4 cursor-pointer">
-                      选择图片
-                    </Button>
-                  </label>
-                  <p className="text-sm text-gray-500">支持格式：JPG, PNG (最大10MB)</p>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Uploaded Images */}
-            {images.length > 0 && (
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between">
-                  <CardTitle className="flex items-center gap-2">
-                    已上传图片 ({images.length})<Badge variant="secondary">使用按钮调整顺序</Badge>
-                  </CardTitle>
-                  <Button variant="outline" size="sm" onClick={clearAllImages}>
-                    <X className="w-4 h-4 mr-2" />
-                    清除所有
+        {/* Upload Section */}
+        <div className="space-y-6">
+          {/* Upload Area */}
+          <Card>
+            <CardContent className="p-8">
+              <div
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+                className={`border-2 border-dashed rounded-lg p-12 text-center cursor-pointer transition-colors ${
+                  dragOver
+                    ? "border-purple-500 bg-purple-50"
+                    : "border-gray-300 hover:border-purple-400 hover:bg-gray-50"
+                }`}
+              >
+                <input
+                  type="file"
+                  multiple
+                  accept="image/*"
+                  onChange={handleFileSelect}
+                  className="hidden"
+                  id="file-upload"
+                />
+                <Upload className="w-16 h-16 text-purple-500 mx-auto mb-4" />
+                <p className="text-lg font-medium text-gray-700 mb-2">
+                  {dragOver ? "松开鼠标上传文件" : "拖放图片到此处或"}
+                </p>
+                <label htmlFor="file-upload">
+                  <Button variant="outline" className="mb-4 cursor-pointer">
+                    选择图片
                   </Button>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {images.map((image, index) => (
-                      <div key={image.id} className="flex items-center gap-4 p-4 border rounded-lg bg-white shadow-sm">
-                        <div className="flex-shrink-0">
-                          <Badge variant="outline" className="w-8 h-8 rounded-full flex items-center justify-center">
-                            {index + 1}
-                          </Badge>
-                        </div>
+                </label>
+                <p className="text-sm text-gray-500">支持格式：JPG, PNG (最大10MB)</p>
+              </div>
+            </CardContent>
+          </Card>
 
-                        <div className="w-16 h-16 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
-                          <img
-                            src={image.preview || "/placeholder.svg"}
-                            alt={image.name}
-                            className="w-full h-full object-cover"
-                          />
-                        </div>
-
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium text-sm truncate" title={image.name}>
-                            {image.name}
-                          </p>
-                          <p className="text-xs text-gray-500">{formatFileSize(image.size)}</p>
-                        </div>
-
-                        <div className="flex gap-2">
-                          <Button variant="outline" size="sm" onClick={() => moveImageUp(index)} disabled={index === 0}>
-                            ↑
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => moveImageDown(index)}
-                            disabled={index === images.length - 1}
-                          >
-                            ↓
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => removeImage(image.id)}
-                            className="text-red-600 hover:text-red-700"
-                          >
-                            <X className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  <div className="flex justify-center mt-6">
-                    <Button
-                      onClick={processWithOpenAI}
-                      disabled={isProcessing}
-                      size="lg"
-                      className="bg-purple-600 hover:bg-purple-700"
-                    >
-                      {isProcessing ? (
-                        <>
-                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
-                          处理中...
-                        </>
-                      ) : (
-                        "调用OpenAI"
-                      )}
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-          </TabsContent>
-
-          <TabsContent value="results" className="space-y-6">
-            {results.length === 0 ? (
-              <Card>
-                <CardContent className="p-12 text-center">
-                  <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                  <p className="text-gray-500 text-lg">
-                    {images.length === 0 ? "请先上传图片" : '点击"调用OpenAI"开始处理'}
-                  </p>
-                </CardContent>
-              </Card>
-            ) : (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Languages className="w-5 h-5" />
-                    AI处理结果
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  {results.map((result, index) => (
-                    <div key={result.imageId} className="border rounded-lg p-6">
-                      <div className="flex items-center gap-4 mb-4">
-                        <div className="w-16 h-16 rounded-lg overflow-hidden bg-gray-100">
-                          <img
-                            src={
-                              images.find((img) => img.id === result.imageId)?.preview ||
-                              "/placeholder.svg?height=64&width=64" ||
-                              "/placeholder.svg"
-                            }
-                            alt={result.imageName}
-                            className="w-full h-full object-cover"
-                          />
-                        </div>
-                        <div className="flex-1">
-                          <h3 className="font-medium">图片 {index + 1}</h3>
-                          <p className="text-sm text-gray-500">{result.imageName}</p>
-                        </div>
-                        <Badge variant={result.status === "success" ? "default" : "destructive"}>
-                          {result.status === "success" ? (
-                            <>
-                              <CheckCircle className="w-3 h-3 mr-1" />
-                              成功
-                            </>
-                          ) : (
-                            <>
-                              <AlertCircle className="w-3 h-3 mr-1" />
-                              失败
-                            </>
-                          )}
+          {/* Uploaded Images */}
+          {images.length > 0 && (
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle className="flex items-center gap-2">
+                  已上传图片 ({images.length})<Badge variant="secondary">使用按钮调整顺序</Badge>
+                </CardTitle>
+                <Button variant="outline" size="sm" onClick={clearAllImages}>
+                  <X className="w-4 h-4 mr-2" />
+                  清除所有
+                </Button>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {images.map((image, index) => (
+                    <div key={image.id} className="flex items-center gap-4 p-4 border rounded-lg bg-white shadow-sm">
+                      <div className="flex-shrink-0">
+                        <Badge variant="outline" className="w-8 h-8 rounded-full flex items-center justify-center">
+                          {index + 1}
                         </Badge>
                       </div>
 
-                      {result.status === "success" && (
-                        <>
-                          <div className="mb-4">
-                            <label className="block text-sm font-medium text-gray-700 mb-2">语言:</label>
-                            <div className="p-3 bg-gray-50 rounded-lg">
-                              <Badge variant="outline">{result.language}</Badge>
-                            </div>
-                          </div>
+                      <div className="w-16 h-16 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
+                        <img
+                          src={image.preview || "/placeholder.svg"}
+                          alt={image.name}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
 
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-2">文本:</label>
-                              <div className="p-4 bg-gray-50 rounded-lg h-64 overflow-y-auto">
-                                <p className="text-sm leading-relaxed whitespace-pre-wrap">{result.originalText}</p>
-                              </div>
-                            </div>
-                            <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-2">修正后:</label>
-                              <div className="p-4 bg-blue-50 rounded-lg h-64 overflow-y-auto">
-                                <p className="text-sm leading-relaxed whitespace-pre-wrap">{result.correctedText}</p>
-                              </div>
-                            </div>
-                          </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-sm truncate" title={image.name}>
+                          {image.name}
+                        </p>
+                        <p className="text-xs text-gray-500">{formatFileSize(image.size)}</p>
+                      </div>
 
-                          <div className="mt-4">
-                            <label className="block text-sm font-medium text-gray-700 mb-2">修正意见:</label>
-                            <div className="p-4 bg-yellow-50 rounded-lg">
-                              <p className="text-sm">{result.suggestions}</p>
-                            </div>
-                          </div>
-                        </>
-                      )}
+                      <div className="flex gap-2">
+                        <Button variant="outline" size="sm" onClick={() => moveImageUp(index)} disabled={index === 0}>
+                          ↑
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => moveImageDown(index)}
+                          disabled={index === images.length - 1}
+                        >
+                          ↓
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => removeImage(image.id)}
+                          className="text-red-600 hover:text-red-700"
+                        >
+                          <X className="w-4 h-4" />
+                        </Button>
+                      </div>
                     </div>
                   ))}
-                </CardContent>
-              </Card>
-            )}
-          </TabsContent>
-        </Tabs>
+                </div>
+
+                <div className="flex justify-center mt-6">
+                  <Button
+                    onClick={processWithOpenAI}
+                    disabled={isProcessing}
+                    size="lg"
+                    className="bg-purple-600 hover:bg-purple-700"
+                  >
+                    {isProcessing ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+                        处理中...
+                      </>
+                    ) : (
+                      "调用OpenAI"
+                    )}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+
+        {/* Results Section - Always visible below upload section */}
+        {(results.length > 0 || isProcessing) && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Languages className="w-5 h-5" />
+                AI处理结果
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {isProcessing ? (
+                <div className="text-center py-12">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4" />
+                  <p className="text-gray-600">正在处理图片，请稍候...</p>
+                </div>
+              ) : (
+                results.map((result, index) => (
+                  <div key={result.imageId} className="border rounded-lg p-6">
+                    <div className="flex items-center gap-4 mb-4">
+                      <div className="w-16 h-16 rounded-lg overflow-hidden bg-gray-100">
+                        <img
+                          src={
+                            images.find((img) => img.id === result.imageId)?.preview ||
+                            "/placeholder.svg?height=64&width=64" ||
+                            "/placeholder.svg" ||
+                            "/placeholder.svg"
+                          }
+                          alt={result.imageName}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="font-medium">图片 {index + 1}</h3>
+                        <p className="text-sm text-gray-500">{result.imageName}</p>
+                      </div>
+                      <Badge variant={result.status === "success" ? "default" : "destructive"}>
+                        {result.status === "success" ? (
+                          <>
+                            <CheckCircle className="w-3 h-3 mr-1" />
+                            成功
+                          </>
+                        ) : (
+                          <>
+                            <AlertCircle className="w-3 h-3 mr-1" />
+                            失败
+                          </>
+                        )}
+                      </Badge>
+                    </div>
+
+                    {result.status === "success" && (
+                      <>
+                        <div className="mb-4">
+                          <label className="block text-sm font-medium text-gray-700 mb-2">语言:</label>
+                          <div className="p-3 bg-gray-50 rounded-lg">
+                            <Badge variant="outline">{result.language}</Badge>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">文本:</label>
+                            <div className="p-4 bg-gray-50 rounded-lg h-64 overflow-y-auto">
+                              <p className="text-sm leading-relaxed whitespace-pre-wrap">{result.originalText}</p>
+                            </div>
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">修正后:</label>
+                            <div className="p-4 bg-blue-50 rounded-lg h-64 overflow-y-auto">
+                              <p className="text-sm leading-relaxed whitespace-pre-wrap">{result.correctedText}</p>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="mt-4">
+                          <label className="block text-sm font-medium text-gray-700 mb-2">修正意见:</label>
+                          <div className="p-4 bg-yellow-50 rounded-lg">
+                            <p className="text-sm">{result.suggestions}</p>
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                ))
+              )}
+            </CardContent>
+          </Card>
+        )}
       </div>
     </div>
   )
