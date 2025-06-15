@@ -302,6 +302,7 @@ export default function OCRPage() {
                             images.find((img) => img.id === result.imageId)?.preview ||
                             "/placeholder.svg?height=64&width=64" ||
                             "/placeholder.svg" ||
+                            "/placeholder.svg" ||
                             "/placeholder.svg"
                           }
                           alt={result.imageName}
