@@ -3,21 +3,21 @@ import type { Metadata } from "next"
 import "./globals.css"
 
 export const metadata: Metadata = {
-  title: "多平台 AI - Multi-Platform AI Assistant",
-  description: "一次提问，多个AI平台同时回答 - Ask once, get answers from multiple AI platforms",
-  keywords: ["AI", "ChatGPT", "DeepSeek", "GitHub Copilot", "Microsoft Copilot", "多平台AI"],
-  authors: [{ name: "Multi-Platform AI" }],
+  title: "AI文章修改 - OCR文本提取工具",
+  description: "AI驱动的OCR文本提取和文章修改工具，支持多图片上传和智能文本识别",
+  keywords: ["AI", "OCR", "文本提取", "图片识别", "文章修改", "OpenAI", "文字识别"],
+  authors: [{ name: "AI OCR Tool" }],
   openGraph: {
-    title: "多平台 AI - Multi-Platform AI Assistant",
-    description: "一次提问，多个AI平台同时回答",
+    title: "AI文章修改 - OCR文本提取工具",
+    description: "AI驱动的OCR文本提取和文章修改工具，支持多图片上传和智能文本识别",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "多平台 AI - Multi-Platform AI Assistant",
-    description: "一次提问，多个AI平台同时回答",
+    title: "AI文章修改 - OCR文本提取工具",
+    description: "AI驱动的OCR文本提取和文章修改工具，支持多图片上传和智能文本识别",
   },
-    generator: 'v0.dev'
+  generator: "v0.dev",
 }
 
 export default function RootLayout({

@@ -24,22 +24,22 @@ export async function generateMetadata({
   const { locale } = await params
 
   const titles = {
-    zh: "多平台 AI - 智能助手",
-    en: "Multi-Platform AI - AI Assistant",
-    ja: "マルチプラットフォーム AI - AIアシスタント",
+    zh: "AI文章修改 - OCR文本提取工具",
+    en: "AI Article Editor - OCR Text Extraction Tool",
+    ja: "AI記事編集 - OCRテキスト抽出ツール",
   }
 
   const descriptions = {
-    zh: "一次提问，多个AI平台同时回答",
-    en: "Ask once, get answers from multiple AI platforms",
-    ja: "一度の質問で複数のAIプラットフォームから同時に回答を取得",
+    zh: "AI驱动的OCR文本提取和文章修改工具，支持多图片上传和智能文本识别",
+    en: "AI-powered OCR text extraction and article editing tool with multi-image upload support",
+    ja: "AI駆動のOCRテキスト抽出と記事編集ツール、複数画像アップロード対応",
   }
 
   return {
     title: titles[locale as keyof typeof titles] || titles.zh,
     description: descriptions[locale as keyof typeof descriptions] || descriptions.zh,
-    keywords: ["AI", "ChatGPT", "DeepSeek", "GitHub Copilot", "Microsoft Copilot", "多平台AI"],
-    authors: [{ name: "Multi-Platform AI" }],
+    keywords: ["AI", "OCR", "文本提取", "图片识别", "文章修改", "OpenAI", "文字识别"],
+    authors: [{ name: "AI OCR Tool" }],
     openGraph: {
       title: titles[locale as keyof typeof titles] || titles.zh,
       description: descriptions[locale as keyof typeof descriptions] || descriptions.zh,
