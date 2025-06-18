@@ -96,6 +96,8 @@ export default function TextReviewPage() {
   const [error, setError] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const baseId = useId()
+  const [noWait, setNoWait] = useState(true)
+  const [processingRequests, setProcessingRequests] = useState<Set<string>>(new Set())
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault()
@@ -208,10 +210,17 @@ export default function TextReviewPage() {
   const processWithOpenAI = async () => {
     if (images.length === 0) return
 
-    setIsProcessing(true)
-    // 移除这两行，保留之前的结果
-    // setResults([])
-    // setMergedResult(null)
+    // 生成唯一的请求ID
+    const requestId = `request-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+
+    if (noWait) {
+      // 异步模式：添加到处理中的请求列表
+      setProcessingRequests((prev) => new Set([...prev, requestId]))
+    } else {
+      // 同步模式：设置全局处理状态
+      setIsProcessing(true)
+    }
+
     setError(null)
 
     try {
@@ -323,7 +332,17 @@ export default function TextReviewPage() {
         setError(`Schema validation error: ${error.message}. Please try again or contact support.`)
       }
     } finally {
-      setIsProcessing(false)
+      if (noWait) {
+        // 异步模式：从处理中的请求列表移除
+        setProcessingRequests((prev) => {
+          const newSet = new Set(prev)
+          newSet.delete(requestId)
+          return newSet
+        })
+      } else {
+        // 同步模式：清除全局处理状态
+        setIsProcessing(false)
+      }
     }
   }
 
@@ -501,13 +520,26 @@ export default function TextReviewPage() {
                       合并图像
                     </label>
                   </div>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="no-wait"
+                      checked={noWait}
+                      onCheckedChange={(checked) => setNoWait(checked as boolean)}
+                    />
+                    <label
+                      htmlFor="no-wait"
+                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                    >
+                      无须等待
+                    </label>
+                  </div>
                   <Button
                     onClick={processWithOpenAI}
-                    disabled={isProcessing}
+                    disabled={!noWait && isProcessing}
                     size="lg"
                     className="bg-purple-600 hover:bg-purple-700 px-8 py-3 text-lg"
                   >
-                    {isProcessing ? (
+                    {!noWait && isProcessing ? (
                       <>
                         <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2" />
                         处理中...
@@ -523,7 +555,7 @@ export default function TextReviewPage() {
         </div>
 
         {/* Results Section */}
-        {(results.length > 0 || mergedResult || isProcessing) && (
+        {(results.length > 0 || mergedResult || isProcessing || processingRequests.size > 0) && (
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="flex items-center gap-2">
@@ -537,6 +569,11 @@ export default function TextReviewPage() {
                 {results.length > 0 && (
                   <Badge variant="outline" className="ml-2">
                     历史结果: {results.length}
+                  </Badge>
+                )}
+                {processingRequests.size > 0 && (
+                  <Badge variant="default" className="ml-2 bg-orange-500">
+                    处理中: {processingRequests.size}
                   </Badge>
                 )}
               </CardTitle>
@@ -556,12 +593,19 @@ export default function TextReviewPage() {
             </CardHeader>
             <CardContent className="space-y-6">
               {/* 处理中状态 - 始终在最上方显示 */}
-              {isProcessing && (
+              {(isProcessing || processingRequests.size > 0) && (
                 <div className="text-center py-8 border rounded-lg bg-purple-50">
                   <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4" />
                   <p className="text-gray-600 text-lg">
-                    {mergeImages ? "正在合并处理所有图片..." : "正在处理图片，请稍候..."}
+                    {processingRequests.size > 0
+                      ? `正在异步处理 ${processingRequests.size} 个请求...`
+                      : mergeImages
+                        ? "正在合并处理所有图片..."
+                        : "正在处理图片，请稍候..."}
                   </p>
+                  {processingRequests.size > 0 && (
+                    <p className="text-sm text-gray-500 mt-2">异步模式：可以继续添加新的处理请求</p>
+                  )}
                 </div>
               )}
 
