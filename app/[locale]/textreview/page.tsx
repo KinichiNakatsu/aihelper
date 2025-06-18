@@ -9,6 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Upload, X, Languages, CheckCircle, AlertCircle, ChevronUp, ChevronDown, Sparkles } from "lucide-react"
 import Link from "next/link"
 import { useLocale } from "next-intl"
+import { useToast } from "@/hooks/use-toast"
 
 interface UploadedImage {
   id: string
@@ -101,6 +102,7 @@ export default function TextReviewPage() {
   const [noWait, setNoWait] = useState(true)
   const [processingRequests, setProcessingRequests] = useState<Set<string>>(new Set())
   const locale = useLocale()
+  const { toast } = useToast()
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault()
@@ -325,6 +327,13 @@ export default function TextReviewPage() {
           setMergedResult(null)
         }
       }
+
+      // 在设置结果后，添加成功toast
+      toast({
+        title: "处理成功",
+        description: mergeImages ? `成功处理并合并了 ${images.length} 张图片` : `成功处理了 ${images.length} 张图片`,
+        duration: 3000,
+      })
     } catch (error) {
       console.error("Error processing images:", error)
       const errorMessage = error instanceof Error ? error.message : "Failed to process images"
@@ -334,6 +343,14 @@ export default function TextReviewPage() {
       if (error instanceof Error && error.message.includes("schema")) {
         setError(`Schema validation error: ${error.message}. Please try again or contact support.`)
       }
+
+      // 在setError之后添加失败toast
+      toast({
+        title: "处理失败",
+        description: errorMessage,
+        variant: "destructive",
+        duration: 5000,
+      })
     } finally {
       if (noWait) {
         // 异步模式：从处理中的请求列表移除
