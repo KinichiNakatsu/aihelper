@@ -24,13 +24,13 @@ export async function generateMetadata({
   const { locale } = await params
 
   const titles = {
-    zh: "多平台 AI - 智能助手",
+    zh: "AI助手 - 使用多个主流AI平台",
     en: "Multi-Platform AI - AI Assistant",
     ja: "マルチプラットフォーム AI - AIアシスタント",
   }
 
   const descriptions = {
-    zh: "一次提问，多个AI平台同时回答",
+    zh: "AI助手 - 使用多个主流AI平台",
     en: "Ask once, get answers from multiple AI platforms",
     ja: "一度の質問で複数のAIプラットフォームから同時に回答を取得",
   }
