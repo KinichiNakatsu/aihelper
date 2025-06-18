@@ -38,8 +38,8 @@ export async function generateMetadata({
   return {
     title: titles[locale as keyof typeof titles] || titles.zh,
     description: descriptions[locale as keyof typeof descriptions] || descriptions.zh,
-    keywords: ["AI", "OCR", "文本提取", "图片识别", "文章修改", "OpenAI", "文字识别"],
-    authors: [{ name: "AI OCR Tool" }],
+    keywords: ["AI", "ChatGPT", "DeepSeek", "GitHub Copilot", "Microsoft Copilot", "多平台AI"],
+    authors: [{ name: "Multi-Platform AI" }],
     openGraph: {
       title: titles[locale as keyof typeof titles] || titles.zh,
       description: descriptions[locale as keyof typeof descriptions] || descriptions.zh,

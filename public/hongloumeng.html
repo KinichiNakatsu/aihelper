@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>红楼梦阅读器 - AI解析</title>
+    <link href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=Noto+Serif+SC:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Noto Serif SC', serif;
+            background-color: #f9f4e8;
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><rect width="100" height="100" fill="%23f9f4e8"/><path d="M0 50 L100 50 M50 0 L50 100" stroke="%23e8d9c0" stroke-width="0.5"/></svg>');
+            color: #5c3b2e;
+            line-height: 1.8;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 30px;
+            align-items: stretch;
+        }
+        
+        header {
+            width: 100%;
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px 0;
+            border-bottom: 3px double #c62828;
+            position: relative;
+        }
+        
+        header h1 {
+            font-family: 'Ma Shan Zheng', cursive;
+            font-size: 3.5rem;
+            color: #8d1f1f;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+            letter-spacing: 8px;
+        }
+        
+        header::before, header::after {
+            content: "❦";
+            color: #c62828;
+            font-size: 2rem;
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+        
+        header::before {
+            left: 20%;
+        }
+        
+        header::after {
+            right: 20%;
+        }
+        
+        .book-column, .ai-column {
+            flex: 1;
+            min-width: 300px;
+            background: #fffaf0;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+            border: 1px solid #e8d9c0;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .column-title {
+            font-family: 'Ma Shan Zheng', cursive;
+            color: #8d1f1f;
+            font-size: 2rem;
+            text-align: center;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #e8d9c0;
+            position: relative;
+        }
+        
+        .column-title::after {
+            content: "";
+            position: absolute;
+            bottom: -5px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100px;
+            height: 3px;
+            background: #c62828;
+        }
+        
+        .book-content {
+            font-size: 1.1rem;
+            text-indent: 2em;
+            line-height: 2;
+            padding: 15px;
+            background: rgba(255, 253, 247, 0.7);
+            border: 1px solid #e8d9c0;
+            border-radius: 5px;
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.05);
+            flex: 1;
+        }
+        
+        .book-content p {
+            margin-bottom: 1.5em;
+        }
+        
+        .ai-content {
+            background: rgba(255, 253, 247, 0.7);
+            border: 1px solid #e8d9c0;
+            border-radius: 5px;
+            padding: 20px;
+            flex: 1;
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.05);
+        }
+        
+        .ai-message {
+            margin-bottom: 25px;
+            padding: 20px;
+            border-radius: 8px;
+            position: relative;
+        }
+        
+        .ai-response {
+            background: #f8f4e6;
+            border-left: 4px solid #c62828;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+        }
+        
+        .ai-header {
+            font-weight: bold;
+            color: #8d1f1f;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            font-size: 1.2rem;
+        }
+        
+        .ai-header i {
+            margin-right: 10px;
+            font-size: 1.4rem;
+        }
+        
+        .ai-text {
+            font-size: 1.05rem;
+            line-height: 1.7;
+        }
+        
+        .ai-text p {
+            margin-bottom: 15px;
+        }
+        
+        .ai-text strong {
+            color: #8d1f1f;
+        }
+        
+        .decoration {
+            position: absolute;
+            opacity: 0.08;
+            z-index: 0;
+            pointer-events: none;
+        }
+        
+        .book-decoration {
+            font-family: 'Ma Shan Zheng', cursive;
+            font-size: 8rem;
+            color: #c62828;
+            bottom: 30px;
+            right: 30px;
+            transform: rotate(-15deg);
+        }
+        
+        .ai-decoration {
+            font-family: 'Ma Shan Zheng', cursive;
+            font-size: 8rem;
+            color: #8d6e63;
+            bottom: 30px;
+            right: 30px;
+            transform: rotate(15deg);
+        }
+        
+        footer {
+            width: 100%;
+            text-align: center;
+            margin-top: 30px;
+            padding: 20px 0;
+            color: #8d6e63;
+            font-size: 0.9rem;
+            border-top: 1px solid #e8d9c0;
+        }
+        
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .container {
+                flex-direction: column;
+            }
+            
+            .ai-column {
+                order: 2;
+            }
+            
+            .book-column {
+                order: 1;
+            }
+            
+            header h1 {
+                font-size: 2.5rem;
+            }
+            
+            header::before, header::after {
+                display: none;
+            }
+            
+            .book-content, .ai-content {
+                padding: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>红楼梦阅读器</h1>
+        </header>
+        
+        <div class="book-column">
+            <h2 class="column-title">原著文本</h2>
+            <div class="book-content">
+                <p>此开卷第一回也。作者自云：因曾历过一番梦幻之后，故将真事隐去，而借通灵之说，撰此《石头记》一书也。故曰"甄士隐"云云。但书中所记何事何人？自又云："今风尘碌碌，一事无成，忽念及当日所有之女子，一一细考较去，觉其行止见识，皆出于我之上。何我堂堂须眉，诚不若彼裙钗哉？实愧则有余，悔又无益之大无可如何之日也！"</p>
+                
+                <p>当此，则自欲将已往所赖天恩祖德，锦衣纨绔之时，饫甘餍肥之日，背父兄教育之恩，负师友规谈之德，以至今日一技无成，半生潦倒之罪，编述一集，以告天下人：我之罪固不免，然闺阁中本自历历有人，万不可因我之不肖，自护己短，一并使其泯灭也。虽今日之茅椽蓬牖，瓦灶绳床，其晨夕风露，阶柳庭花，亦未有妨我之襟怀笔墨者。</p>
+                
+                <p>虽我未学，下笔无文，又何妨用假语村言，敷演出一段故事来，亦可使闺阁昭传，复可悦世之目，破人愁闷，不亦宜乎？"故曰"贾雨村"云云。</p>
+                
+                <p>列位看官：你道此书从何而来？说起根由虽近荒唐，细按则深有趣味。待在下将此来历注明，方使阅者了然不惑。</p>
+                
+                <p>原来女娲氏炼石补天之时，于大荒山无稽崖练成高经十二丈，方经二十四丈顽石三万六千五百零一块。娲皇氏只用了三万六千五百块，只单单剩了一块未用，便弃在此山青埂峰下。谁知此石自经煅炼之后，灵性已通，因见众石俱得补天，独自己无材不堪入选，遂自怨自叹，日夜悲号惭愧。</p>
+                
+                <p>一日，正当嗟悼之际，俄见一僧一道远远而来，生得骨格不凡，丰神迥异，说说笑笑来至峰下，坐于石边高谈快论。先是说些云山雾海神仙玄幻之事，后便说到红尘中荣华富贵。此石听了，不觉打动凡心，也想要到人间去享一享这荣华富贵，但自恨粗蠢，不得已，便口吐人言，向那僧道说道："大师，弟子蠢物，不能见礼了。适闻二位谈那人世间荣耀繁华，心切慕之。弟子质虽粗蠢，性却稍通，况见二师仙形道体，定非凡品，必有补天济世之材，利物济人之德。如蒙发一点慈心，携带弟子得入红尘，在那富贵场中，温柔乡里受享几年，自当永佩洪恩，万劫不忘也。"</p>
+                
+                <p>那僧道听毕，齐憨笑道："善哉，善哉！那红尘中有却有些乐事，但不能永远依恃；况又有'美中不足，好事多魔'八个字紧相连属，瞬息间则又乐极悲生，人非物换，究竟是到头一梦，万境归空，倒不如不去的好。"</p>
+                
+                <p>这石凡心已炽，那里听得进这话去，乃复苦求再四。二仙知不可强制，乃叹道："此亦静极思动，无中生有之数也。既如此，我们便携你去受享受享，只是到不得意时，切莫后悔。"石道："自然，自然。"那僧又道："若说你性灵，却又如此质蠢，并更无奇贵之处。如此也只好踮脚而已。也罢，我如今大施佛法助你助，待劫终之日，复还本质，以了此案。你道好否？"石头听了，感谢不尽。那僧便念咒书符，大展幻术，将一块大石登时变成一块鲜明莹洁的美玉，且又缩成扇坠大小的可佩可拿。</p>
+                
+                <p>那僧托于掌上，笑道："形体倒也是个宝物了！还只没有实在的好处，须得再镌上数字，使人一见便知是奇物方妙。然后携你到那昌明隆盛之邦，诗礼簪缨之族，花柳繁华地，温柔富贵乡去安身乐业。"石头听了，喜不能禁，乃问："不知赐了弟子那几件奇处，又不知携了弟子到何地方？望乞明示，使弟子不惑。"那僧笑道："你且莫问，日后自然明白的。"说着，便袖了这石，同那道人飘然而去，竟不知投奔何方何舍。</p>
+                
+                <p>后来，又不知过了几世几劫，因有个空空道人访道求仙，忽从这大荒山无稽崖青埂峰下经过，忽见一大块石上字迹分明，编述历历。空空道人乃从头一看，原来就是无材补天，幻形入世，蒙茫茫大士、渺渺真人携入红尘，历尽离合悲欢炎凉世态的一段故事。后面又有一首偈云：</p>
+                
+                <p>无材可去补苍天，枉入红尘若许年。<br>
+                此系身前身后事，倩谁记去作奇传？</p>
+                
+                <p>诗后便是此石坠落之乡，投胎之处，亲自经历的一段陈迹故事。其中家庭闺阁琐事，以及闲情诗词倒还全备，或可适趣解闷；然朝代年纪，地舆邦国，却反失落无考。</p>
+            </div>
+            <div class="decoration book-decoration">梦</div>
+        </div>
+        
+        <div class="ai-column">
+            <h2 class="column-title">AI解析</h2>
+            <div class="ai-content">
+
+            <div class="decoration ai-decoration">智</div>
+        </div>
+        
+        <footer>
+            <p>红楼梦阅读器 · AI解析 | 传承经典文学，探索智慧解读</p>
+            <p>本页面为文学研究用途，内容基于《红楼梦》原著创作</p>
+        </footer>
+    </div>
+</body>
+</html>
