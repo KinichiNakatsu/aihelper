@@ -17,7 +17,7 @@ export const metadata: Metadata = {
     title: "AI助手 - 使用多个主流AI平台",
     description: "AI助手 - 使用多个主流AI平台",
   },
-    generator: 'v0.dev'
+  generator: "v0.dev",
 }
 
 export default function RootLayout({
